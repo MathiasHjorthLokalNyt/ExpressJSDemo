@@ -1,14 +1,20 @@
 import express from "express"
-import { CreateRoutes } from "./routes.js";
+import { createRoutes } from "./routes.js";
 
 //App options
 export const app = express();
+export const baseUrl = "/api"
 const port = 8050;
 
+//Middelware
+app.use(express.json()) 
+
 //Create routes
-CreateRoutes();
+createRoutes();
 
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server started listening on port: ${port}`)
 })
+
+

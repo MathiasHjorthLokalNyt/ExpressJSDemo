@@ -1,19 +1,39 @@
-import express from "express"
-import {app} from "./app.js"
+import {app, baseUrl} from "./app.js"
+import generatePdf from "./pdfController.js";
 
 
 //Routes
-export function CreateRoutes(){
+export function createRoutes(){
     
     try{
-        //:GET
-        app.get("/", (req, res) => {
-            res.send("Hello World!");
+
+        //:GET /
+        app.get("/", (request, response) => {
+            response.contentType("application/json")
+            response.send("Hello World!");
         });
 
-        app.get("/generatepdf/:url", (req, res) => {
-            res.send("Hello World!");
-        });
+        //:GET generatepdf/{url}
+        app.get(String(baseUrl+"/generatepdf"), async (request, response) => 
+        {
+            const result = await generatePdf(request);
+            if(!result.isSucess){
+
+                response.type("json");
+                response.statusCode = result.statusCode;
+                response.send(JSON.stringify(result));
+
+            }
+            else{
+                response.type("application/octet-stream");
+                response.send(result.data);
+            }
+        }
+        );
+
+
+
+
 
 
         //:POST
@@ -22,10 +42,7 @@ export function CreateRoutes(){
         console.log("Routes created succesfully...")
     }
     catch(err){
-        console.log(`ERROR: Could not create routes... Message: ${err}`)
-    }
-    finally{
-        app
+        console.log(`ERROR: Could not create routes... Message: ${err}`);
     }
 
 };
