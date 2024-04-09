@@ -133,7 +133,7 @@ async function GetEavisLength(webPage){
  
  async function MergePdfFiles(pdfFileBinaries){
      console.log("Merging pdf files")
-     const merger = new PDFMerger();
+     const merger = new pdfMerger();
      await merger.add(pdfFileBinaries[0]);
      await merger.add(pdfFileBinaries[1]);
      await merger.save("mergedBinary.pdf");

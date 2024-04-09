@@ -26,6 +26,7 @@ export function createRoutes(){
             }
             else{
                 response.type("application/octet-stream");
+                response.statusCode = result.statusCode;
                 response.send(result.data);
             }
         }
