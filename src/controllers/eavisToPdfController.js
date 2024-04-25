@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer';
 import pdfMerger from 'pdf-merger-js';
 import {OperationResult} from '../classes/operationResult.js';
+import { validateUrl } from '../utilities/security/eavisUrlValidator.js';
 
 // WARNING!!
 // Ungraceful shutdowns during execution can make the script non-functional on subsequent requests.
@@ -9,17 +10,20 @@ import {OperationResult} from '../classes/operationResult.js';
 const eavisNextPageButtonSelector = "#screenNext";
 const eavisPageIdSelector = "#page-Side";
 const eavisPageClassSelector = ".eavis-Page";
-// const linuxChromeExecuteablePath = "../root/.cache/puppeteer/chrome/linux-123.0.6312.105/chrome-linux64/chrome_sandbox" //Specific path to the chrome executeable used by Puppeteer, on the host machine.
 const pdfFileBinaries = new Array();
 
 export default async function generatePdf(request){
 
     const {eavisUrl} = request.body; //The eavisUrl of the eavis to generate a pdf from
-    console.log("Request for PDF generation of url: "+eavisUrl+", has been recieved")
+    console.log("Request for PDF generation of url: "+eavisUrl+", has been recieved");
+
     if(eavisUrl === undefined || eavisUrl === null){
       return new OperationResult(false,400,"Could not find attribute 'eavisUrl' in request body",null);
     }
     try{
+        const isUrlValid = await validateUrl(eavisUrl); 
+        if(!isUrlValid) return new OperationResult(false,400,"Validation of eavisUrl failed for url: "+eavisUrl+" Is not a valid url. Only urls with valid lokalnyt domains are accepted.")
+        console.log("Url was valid");
         const webPage = await launchBrowser(eavisUrl);
         const pdfBinaryResult = await startGeneration(webPage);
 
@@ -37,7 +41,7 @@ export default async function generatePdf(request){
 async function launchBrowser(eavisUrl){
 
   console.log("Launching browser");
-  const browser = await puppeteer.launch({headless: true});
+  const browser = await puppeteer.launch({headless: true, args:["--no-sandbox"]});
   const webPage = await browser.newPage();
 
   await webPage.setViewport({width: 793, height: 1123, deviceScaleFactor: 1});
@@ -45,8 +49,8 @@ async function launchBrowser(eavisUrl){
   console.log("Navigating browser to url: "+eavisUrl);
   try{
     const [response] = await Promise.all([
-      webPage.waitForNavigation({waitUntil: "domcontentloaded"}),
-      webPage.goto(eavisUrl)
+      await webPage.waitForNavigation({waitUntil: "domcontentloaded", timeout:60_000}),
+      await webPage.goto(eavisUrl)
     ]);
     console.log("Setting media type");
     await webPage.emulateMediaType('print');
@@ -132,7 +136,7 @@ async function EnsurePageScale(webPage,currentPageSelector){
 async function GetEavisLength(webPage){
     const result = await webPage.$$(eavisPageClassSelector)
     if(result.length === undefined){
-      throw new Error("Could not determine length of eavis")
+      throw new Error("Could not determine length of eavis. Possible cause: No elements with the eavis-page class")
     }
     return result.length;
  }

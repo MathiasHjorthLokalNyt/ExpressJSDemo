@@ -76,7 +76,7 @@ RUN set -ex \
   # smoke test
   && yarn --version
 
-WORKDIR /lokalnytpdfgenapi  
+WORKDIR /lokalnytpdfgenapi
 COPY . .
 ENV HOME=/lokalnytpdfgenapi
 RUN npm install

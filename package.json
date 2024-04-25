@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
     "pdf-merger-js": "^5.1.1",
     "puppeteer": "^22.6.1"
   }
