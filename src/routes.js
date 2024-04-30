@@ -30,7 +30,7 @@ export function createRoutes(){
 
 
         //:POST
-          //:POST /api/v1/generatepdf/{url}
+          //:POST /api/v1/generatepdf
           app.post(String(baseUrl+"/generatepdf"), async (request, response) => 
           {
               const result = await generatePdf(request);
@@ -39,7 +39,6 @@ export function createRoutes(){
                   response.type("json");
                   response.statusCode = result.statusCode;
                   response.send(JSON.stringify(result));
-  
               }
               else{
                   response.type("application/octet-stream");
@@ -56,6 +55,6 @@ export function createRoutes(){
     }
     catch(err){
         console.log(`ERROR: Could not create routes... Message: ${err}`);
-    }
+    };
 
 };

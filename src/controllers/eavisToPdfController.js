@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 import pdfMerger from 'pdf-merger-js';
-import {OperationResult} from '../classes/operationResult.js';
+import { OperationResult } from '../classes/operationResult.js';
 import { validateUrl } from '../utilities/security/eavisUrlValidator.js';
 
 // WARNING!!
@@ -9,7 +9,7 @@ import { validateUrl } from '../utilities/security/eavisUrlValidator.js';
 
 const eavisNextPageButtonSelector = "#screenNext";
 const eavisPageIdSelector = "#page-Side";
-const eavisPageClassSelector = ".eavis-Page";
+const eavisPageClassSelector = ".eavis-page";
 const pdfFileBinaries = new Array();
 
 export default async function generatePdf(request){
@@ -35,7 +35,7 @@ export default async function generatePdf(request){
         return new OperationResult(false,500,err.message,null);
     }
 
-}
+};
 
 
 async function launchBrowser(eavisUrl){
@@ -48,59 +48,52 @@ async function launchBrowser(eavisUrl){
 
   console.log("Navigating browser to url: "+eavisUrl);
   try{
-    const [response] = await Promise.all([
-      await webPage.waitForNavigation({waitUntil: "domcontentloaded", timeout:60_000}),
-      await webPage.goto(eavisUrl)
-    ]);
+    await webPage.goto(eavisUrl,{waitUntil:"load",timeout:120_000})
     console.log("Setting media type");
     await webPage.emulateMediaType('print');
     return webPage;
   }
   catch(err){
       //terminate the browser instance
-      browser.close();
+      await browser.close();
       throw new Error("Puppeteer error: "+err);
   }
 
-}
+};
 
 async function startGeneration(webPage){
 
     const eavisLength = await GetEavisLength(webPage);
+    console.log(eavisLength)
 
     //For each page on the eavis, generate a pdf, move to the next page, repeat untill at the end of the eavis.
-    for(let pageNumber = 1; pageNumber < 5; pageNumber++)
+    for(let pageNumber = 1; pageNumber < eavisLength+1; pageNumber++)
     {
 
       let currentPageSelector = String(eavisPageIdSelector+pageNumber); //Ie. #page-Side3
       await MoveToNextPage(webPage); 
       await EnsurePageScale(webPage,currentPageSelector);
 
-      let pageFileBinary = await GeneratePdf(webPage,currentPageSelector);
-  
-      //add pdf binary to array
-      pdfFileBinaries[pageNumber-1] = pageFileBinary;
-
+      pdfFileBinaries[pageNumber-1] = await GeneratePdf(webPage,currentPageSelector);
+      
     }
     console.log("Finished generating PDF file binaries of all pages")
   
     //return the merged pdf binary files
     return await MergePdfFiles(pdfFileBinaries);
 
-}
-
+};
 
 
 async function GeneratePdf(webPage,pdfName){
     console.log("Generating PDF binary of page: "+pdfName);
    return await webPage.pdf(
     {
-    //   path: "./LokalNytHorsensUge34/"+pdfName, //saves file to disk if this option is specified explicitly
       printBackground: true, 
       displayHeaderFooter: false,
       format: "A4"
     });
-}
+};
 
 async function MoveToNextPage(webPage){
     console.log("Moving on to next page");
@@ -108,7 +101,7 @@ async function MoveToNextPage(webPage){
         const nextPageButton = document.querySelector(eavisNextPageButtonSelector);
         nextPageButton.click();
       },eavisNextPageButtonSelector)
-}
+};
 
 async function EnsurePageScale(webPage,currentPageSelector){
 
@@ -130,21 +123,30 @@ async function EnsurePageScale(webPage,currentPageSelector){
       console.log("Something went wrong trying to change the style attribute of element: "+currentPageSelector+" Possible cause: Missing style attribute on the element");
       throw new Error("Puppeteer error: "+err+". Something went wrong trying to change the style attribute of element: "+currentPageSelector+" Possible cause: Missing style attribute on the element")
     }
-  }
+  };
 
 
 async function GetEavisLength(webPage){
-    const result = await webPage.$$(eavisPageClassSelector)
-    if(result.length === undefined){
+    const length = await webPage.evaluate((eavisPageClassSelector) => {return document.querySelectorAll(eavisPageClassSelector).length},eavisPageClassSelector)
+    if(length === undefined){
       throw new Error("Could not determine length of eavis. Possible cause: No elements with the eavis-page class")
     }
-    return result.length;
- }
+    return length
+ };
  
  async function MergePdfFiles(pdfFileBinaries){
-     console.log("Merging PDF binary files")
-     const merger = new pdfMerger();
-     await merger.add(pdfFileBinaries[0]);
-     await merger.add(pdfFileBinaries[1]);
-     return await merger.saveAsBuffer();
- }
+    console.log("Merging pdf binaries")
+    const merger = new pdfMerger();
+
+    try{
+      for(let i = 0; i < pdfFileBinaries.length; i++){
+        await merger.add(pdfFileBinaries[i]);
+      }
+      await merger.save("LokalNytAlpha.pdf");
+      console.log("Merge successfull")
+    }
+    catch(err){
+      console.log(err)
+    }
+
+ };

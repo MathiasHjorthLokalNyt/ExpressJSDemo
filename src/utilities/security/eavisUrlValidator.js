@@ -11,9 +11,9 @@ export async function validateUrl(eavisUrl){
     // Incoming URLs must match one of lokalnyts domains
     
     console.log("Started validation process for url: "+eavisUrl);
-    let response = await getLokalNytDomains();
+    let responseBody = await getLokalNytDomains();
 
-    let urlArr = await parseResponse(response);
+    let urlArr = await parseResponse(responseBody);
 
     urlArr.push(["https://alpha.lokal-nyt.dk","https://beta.lokal-nyt.dk"]); //Adding the alpha and beta
 
@@ -36,7 +36,7 @@ export async function validateUrl(eavisUrl){
     try{
         const response = await fetch(lokalNytDomainsEndpoint);
         const body = await response.text();
-        console.log(body);
+        // console.log(body);
         if(body === undefined || body === null) throw new Error("Body of response was empty or null");
         else return body;
     }
@@ -47,11 +47,14 @@ export async function validateUrl(eavisUrl){
 
    async function parseResponse(response){
     console.log("Parsing domain response");
+    const domainsArr = new Array();
     try{
         const parseResult = JSON.parse(response, (key, value) => {
-            if(key === "url") return value;
+            if(key === "url"){
+                domainsArr.push(value);
+            } 
         });
-        console.log(parseResult);
+        return domainsArr
     }
     catch(err){
         throw new Error(err);
